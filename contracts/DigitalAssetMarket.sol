@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.19 .0;
 
 contract DigitalAssetMarket {
     enum AssetState {
@@ -18,8 +18,17 @@ contract DigitalAssetMarket {
         address buyer,
         uint assetId,
         uint price,
+        uint share,
         uint time
     );
+    address payable private owner;
+    uint8 private shareOfSale;
+    uint private balance;
+
+    constructor(uint8 _shareOfSale) {
+        owner = payable(msg.sender);
+        shareOfSale = _shareOfSale;
+    }
 
     function addAsset(string memory _name, uint _price) public returns (uint) {
         require(bytes(_name).length > 0, "Name for asset is required");
@@ -48,7 +57,9 @@ contract DigitalAssetMarket {
         require(theAsset.price == msg.value, "Value and price are different!");
 
         theAsset.state = AssetState.OutOfSale;
-        payable(theAsset.owner).transfer(msg.value);
+        uint share = (theAsset.price * shareOfSale) / 100;
+        payable(theAsset.owner).transfer(msg.value - share);
+        balance += share;
         address oldOwner = theAsset.owner;
         theAsset.owner = msg.sender;
         assets[_assetIndex] = theAsset;
@@ -57,7 +68,15 @@ contract DigitalAssetMarket {
             msg.sender,
             _assetIndex,
             theAsset.price,
+            share,
             block.timestamp
         );
+    }
+
+    function withdraw(uint _amount) public {
+        require(msg.sender == owner, "Only market owner can withdraw money!");
+        require(_amount <= balance, "Not enough money!");
+        balance -= _amount;
+        owner.transfer(_amount);
     }
 }
