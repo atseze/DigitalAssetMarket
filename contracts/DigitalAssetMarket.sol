@@ -58,6 +58,7 @@ contract DigitalAssetMarket {
 
         theAsset.state = AssetState.OutOfSale;
         uint share = (theAsset.price * shareOfSale) / 100;
+        if (share == 0) share = 1;
         payable(theAsset.owner).transfer(msg.value - share);
         balance += share;
         address oldOwner = theAsset.owner;
@@ -75,7 +76,10 @@ contract DigitalAssetMarket {
 
     function withdraw(uint _amount) public {
         require(msg.sender == owner, "Only market owner can withdraw money!");
-        require(_amount <= balance, "Not enough money!");
+        require(
+            _amount > 0 && _amount <= balance,
+            "Not valid money requested!"
+        );
         balance -= _amount;
         owner.transfer(_amount);
     }
