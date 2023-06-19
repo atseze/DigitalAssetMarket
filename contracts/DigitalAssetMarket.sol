@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19 .0;
 
-contract DigitalAssetMarket {
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+contract DigitalAssetMarket is Initializable, UUPSUpgradeable {
     enum AssetState {
         OpenToSale,
         OutOfSale
     }
-    struct DigitallAsset {
+    struct DigitalAsset {
         string name;
         address owner;
         AssetState state;
         uint price;
     }
-    DigitallAsset[] public assets;
+    DigitalAsset[] public assets;
     event NewSale(
         address seller,
         address buyer,
@@ -22,19 +25,25 @@ contract DigitalAssetMarket {
         uint time
     );
     address payable private owner;
-    uint8 private shareOfSale;
     uint private balance;
+    uint8 private shareOfSale;
 
-    constructor(uint8 _shareOfSale) {
+    // constructor(uint8 _shareOfSale) {
+    //     owner = payable(msg.sender);
+    //     shareOfSale = _shareOfSale;
+    // }
+
+    function initialize(uint8 _shareOfSale) public initializer {
         owner = payable(msg.sender);
         shareOfSale = _shareOfSale;
+        // __Ownable_init();
     }
 
     function addAsset(string memory _name, uint _price) public returns (uint) {
         require(bytes(_name).length > 0, "Name for asset is required");
         require(_price > 0, "Price must be greater than zero!");
 
-        DigitallAsset memory newAsset;
+        DigitalAsset memory newAsset;
         newAsset.name = _name;
         newAsset.owner = msg.sender;
         newAsset.state = AssetState.OpenToSale;
@@ -48,7 +57,7 @@ contract DigitalAssetMarket {
             assets.length > _assetIndex,
             "The asset reference is not valid!"
         );
-        DigitallAsset memory theAsset = assets[_assetIndex];
+        DigitalAsset memory theAsset = assets[_assetIndex];
         require(theAsset.owner != msg.sender, "This item is yours!");
         require(
             theAsset.state == AssetState.OpenToSale,
@@ -82,5 +91,18 @@ contract DigitalAssetMarket {
         );
         balance -= _amount;
         owner.transfer(_amount);
+    }
+
+    function retrieveSharePercent() public view returns (uint) {
+        return shareOfSale;
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
+
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
     }
 }
